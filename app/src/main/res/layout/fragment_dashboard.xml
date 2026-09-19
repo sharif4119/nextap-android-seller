@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="vertical" android:padding="24dp">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="Seller dashboard" android:textSize="28sp" android:textStyle="bold" />
+        <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="16dp" />
+        <TextView android:id="@+id/pending_orders" style="@style/StatText" />
+        <TextView android:id="@+id/available_cards" style="@style/StatText" />
+        <TextView android:id="@+id/assigned_cards" style="@style/StatText" />
+        <TextView android:id="@+id/programmed_cards" style="@style/StatText" />
+        <TextView android:id="@+id/active_cards" style="@style/StatText" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/orders_button"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="View orders" android:layout_marginTop="24dp" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/refresh_button"
+            style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Refresh" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/logout_button"
+            style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Sign out" />
+    </LinearLayout>
+</ScrollView>

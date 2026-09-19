@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
+        <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="26sp" android:textStyle="bold" />
+        <TextView android:id="@+id/status_message" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" />
+        <TextView android:id="@+id/uid" style="@style/DetailText" />
+        <TextView android:id="@+id/card_status" style="@style/DetailText" />
+        <TextView android:id="@+id/public_url" style="@style/DetailText" android:textIsSelectable="true" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/write_button"
+            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Write NFC" android:layout_marginTop="24dp" android:visibility="gone" />
+    </LinearLayout>
+</ScrollView>
