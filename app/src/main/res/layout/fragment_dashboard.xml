@@ -1,24 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:orientation="vertical" android:padding="24dp">
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="Seller dashboard" android:textSize="28sp" android:textStyle="bold" />
-        <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="16dp" />
-        <TextView android:id="@+id/pending_orders" style="@style/StatText" />
-        <TextView android:id="@+id/available_cards" style="@style/StatText" />
-        <TextView android:id="@+id/assigned_cards" style="@style/StatText" />
-        <TextView android:id="@+id/programmed_cards" style="@style/StatText" />
-        <TextView android:id="@+id/active_cards" style="@style/StatText" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/orders_button"
-            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="View orders" android:layout_marginTop="24dp" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/refresh_button"
-            style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:text="Refresh" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/logout_button"
-            style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:text="Sign out" />
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:background="@color/app_background" android:fillViewport="true">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/bg_app_gradient" android:paddingStart="24dp" android:paddingTop="28dp" android:paddingEnd="24dp" android:paddingBottom="28dp">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="NexTap" android:textColor="@color/accent_cyan" android:textSize="16sp" android:textStyle="bold" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Seller dashboard" android:textColor="@color/white" android:textSize="30sp" android:textStyle="bold" android:layout_marginTop="4dp" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Manage orders and prepare NFC cards" android:textColor="@color/nav_text_muted" android:textSize="15sp" android:layout_marginTop="6dp" />
+        </LinearLayout>
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+            <TextView android:id="@+id/status" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/text_secondary" android:visibility="gone" />
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2">
+                <TextView android:id="@+id/pending_orders" style="@style/StatText" android:layout_width="0dp" android:layout_weight="1" />
+                <TextView android:id="@+id/available_cards" style="@style/StatText" android:layout_width="0dp" android:layout_weight="1" android:layout_marginStart="12dp" />
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2">
+                <TextView android:id="@+id/assigned_cards" style="@style/StatText" android:layout_width="0dp" android:layout_weight="1" />
+                <TextView android:id="@+id/programmed_cards" style="@style/StatText" android:layout_width="0dp" android:layout_weight="1" android:layout_marginStart="12dp" />
+            </LinearLayout>
+            <TextView android:id="@+id/active_cards" style="@style/StatText" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/orders_button" android:layout_width="match_parent" android:layout_height="56dp" android:text="View orders" android:textStyle="bold" android:layout_marginTop="22dp" app:cornerRadius="14dp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/refresh_button" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Refresh dashboard" app:cornerRadius="14dp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/logout_button" style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Sign out" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

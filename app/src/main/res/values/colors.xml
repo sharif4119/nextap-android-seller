@@ -2,8 +2,18 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="brand_primary">#146C5A</color>
-    <color name="brand_primary_dark">#0D4F42</color>
-    <color name="surface_soft">#F3F7F6</color>
-    <color name="status_error">#B3261E</color>
+    <color name="brand_primary">#087BFF</color>
+    <color name="brand_primary_dark">#045CC2</color>
+    <color name="accent_cyan">#19D3FF</color>
+    <color name="cyan_soft">#DDF8FF</color>
+    <color name="navy">#081426</color>
+    <color name="navy_deep">#030914</color>
+    <color name="nav_text_muted">#92A4BC</color>
+    <color name="app_background">#F4F7FB</color>
+    <color name="surface_soft">#EEF4FA</color>
+    <color name="surface_card">#FFFFFFFF</color>
+    <color name="text_primary">#0B1628</color>
+    <color name="text_secondary">#5F7087</color>
+    <color name="status_error">#C62828</color>
+    <color name="status_success">#087F5B</color>
 </resources>

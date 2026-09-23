@@ -12,15 +12,15 @@ class DashboardFragment : BaseFragment(R.layout.fragment_dashboard) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         view.findViewById<MaterialButton>(R.id.orders_button).setOnClickListener { navigator.orders() }
-        view.findViewById<MaterialButton>(R.id.refresh_button).setOnClickListener { viewModel.loadDashboard() }
+        view.findViewById<MaterialButton>(R.id.refresh_button).setOnClickListener { viewModel.loadDashboard(force = true) }
         view.findViewById<MaterialButton>(R.id.logout_button).setOnClickListener { navigator.logout() }
         val status = view.findViewById<TextView>(R.id.status)
         viewModel.dashboard.observe(viewLifecycleOwner) { state ->
             when (state) {
-                UiState.Loading -> status.text = "Loading dashboard…"
-                is UiState.Error -> status.text = state.message
+                UiState.Loading -> { status.visibility = View.VISIBLE; status.text = "Loading dashboard…" }
+                is UiState.Error -> { status.visibility = View.VISIBLE; status.text = state.message }
                 is UiState.Data -> with(state.value) {
-                    status.text = ""
+                    status.visibility = View.GONE
                     view.findViewById<TextView>(R.id.pending_orders).text = "Pending orders\n$pendingOrders"
                     view.findViewById<TextView>(R.id.available_cards).text = "Available cards\n$availableCards"
                     view.findViewById<TextView>(R.id.assigned_cards).text = "Assigned cards\n$assignedCards"

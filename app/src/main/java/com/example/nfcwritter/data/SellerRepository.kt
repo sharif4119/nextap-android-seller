@@ -4,13 +4,15 @@ import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import okhttp3.OkHttpClient
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 class SellerRepository(private val api: SellerApi, private val tokenStore: TokenStore) {
     companion object {
-        const val BASE_URL = "https://nfc-digital-card.onrender.com/"
+        const val BASE_URL = "https://nextap.pythonanywhere.com/"
 
         fun create(tokenStore: TokenStore): SellerRepository {
             val client = OkHttpClient.Builder().addInterceptor { chain ->
@@ -37,6 +39,7 @@ class SellerRepository(private val api: SellerApi, private val tokenStore: Token
     suspend fun dashboard() = request(api::dashboard, JsonMappers::dashboard)
     suspend fun orders() = request(api::orders, JsonMappers::orders)
     suspend fun order(id: Long) = request({ api.order(id) }, JsonMappers::order)
+    suspend fun prepareCard(orderId: Long) = request({ api.prepareCard(orderId) }, JsonMappers::order)
     suspend fun availableCards() = request(api::availableCards, JsonMappers::cards)
     suspend fun card(id: Long) = request({ api.card(id) }, JsonMappers::card)
     suspend fun assignCard(orderId: Long, cardId: Long): ApiResult<SellerOrder> {
@@ -47,6 +50,23 @@ class SellerRepository(private val api: SellerApi, private val tokenStore: Token
     }
     suspend fun markProgrammed(cardId: Long) = request({ api.markProgrammed(cardId) }) { true }
     suspend fun activate(cardId: Long) = request({ api.activate(cardId) }) { true }
+    suspend fun printDesign(card: NfcCard): ApiResult<PrintDesignDocument> = safe {
+        val suppliedUrl = card.printDesignUrl
+            ?: throw IllegalArgumentException("The server has not provided a print-ready design for this card yet.")
+        val url = PrintDesignSupport.resolveSameServerUrl(BASE_URL, suppliedUrl)
+            ?: throw IllegalArgumentException("The server returned an invalid print-design address.")
+        val response = api.printDesign(url)
+        if (!response.isSuccessful) throw ApiException(response.code(), errorMessage(response))
+        val body = response.body() ?: throw IllegalStateException("The server returned an empty print-design file.")
+        val bytes = withContext(Dispatchers.IO) { body.use { it.bytes() } }
+        if (bytes.size < 5 || !bytes.copyOfRange(0, 5).contentEquals("%PDF-".toByteArray())) {
+            throw IllegalStateException("The server response was not a valid PDF file.")
+        }
+        PrintDesignDocument(
+            fileName = PrintDesignSupport.fileName(response.headers()["Content-Disposition"], card.uid),
+            bytes = bytes,
+        )
+    }
     suspend fun logout() = tokenStore.clear()
 
     private suspend fun <T> request(call: suspend () -> Response<JsonElement>, map: (JsonElement) -> T): ApiResult<T> = safe {
@@ -59,8 +79,14 @@ class SellerRepository(private val api: SellerApi, private val tokenStore: Token
         ApiResult.Success(block())
     } catch (e: ApiException) {
         ApiResult.Error(e.message ?: "Request failed", e.code == 401 || e.code == 403)
+    } catch (e: java.net.UnknownHostException) {
+        ApiResult.Error("No internet connection. Check your network and try again.")
+    } catch (e: java.net.SocketTimeoutException) {
+        ApiResult.Error("The server took too long to respond. Please try again.")
+    } catch (e: java.io.IOException) {
+        ApiResult.Error("Could not reach the server. Check your connection and try again.")
     } catch (e: Exception) {
-        ApiResult.Error(e.message ?: "Unable to reach the server")
+        ApiResult.Error(e.message ?: "Something went wrong. Please try again.")
     }
 
     private fun errorMessage(response: Response<*>): String {
@@ -71,9 +97,20 @@ class SellerRepository(private val api: SellerApi, private val tokenStore: Token
                 listOf("detail", "error", "message", "non_field_errors").firstNotNullOfOrNull { key ->
                     o.get(key)?.let { if (it.isJsonArray) it.asJsonArray.joinToString { v -> v.asString } else it.asString }
                 }
-            }.getOrNull()?.let { return it }
+            }.getOrNull()?.let { detail ->
+                val normalized = detail.lowercase()
+                if ("already" in normalized && "card" in normalized) {
+                    return "This order or customer already has an NFC card. Refresh the order to see it."
+                }
+                if (response.code() in 400..499) return detail
+            }
         }
-        return "Server returned ${response.code()}"
+        return when (response.code()) {
+            401 -> "Your session has expired. Please sign in again."
+            403 -> "You do not have permission to perform this action."
+            409 -> "This order or customer already has an NFC card. Refresh the order to see it."
+            else -> "The server could not complete this request (${response.code()})."
+        }
     }
 
     private class ApiException(val code: Int, message: String) : Exception(message)

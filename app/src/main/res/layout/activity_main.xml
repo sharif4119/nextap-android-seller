@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.fragment.app.FragmentContainerView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/fragment_container"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent" />
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical"
+    android:background="@color/app_background">
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragment_container" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1" />
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:background="@color/navy" android:elevation="12dp" android:visibility="gone"
+        app:itemIconTint="@color/bottom_nav_colors" app:itemTextColor="@color/bottom_nav_colors"
+        app:labelVisibilityMode="labeled" app:menu="@menu/bottom_navigation"
+        xmlns:app="http://schemas.android.com/apk/res-auto" />
+</LinearLayout>

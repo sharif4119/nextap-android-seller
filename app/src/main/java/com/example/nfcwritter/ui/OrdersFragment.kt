@@ -20,14 +20,23 @@ class OrdersFragment : BaseFragment(R.layout.fragment_list) {
             layoutManager = LinearLayoutManager(requireContext())
             this.adapter = adapter
         }
-        view.findViewById<MaterialButton>(R.id.refresh_button).setOnClickListener { viewModel.loadOrders() }
+        view.findViewById<MaterialButton>(R.id.refresh_button).setOnClickListener { viewModel.loadOrders(force = true) }
         viewModel.orders.observe(viewLifecycleOwner) { state ->
             when (state) {
                 UiState.Loading -> status.text = "Loading orders…"
                 is UiState.Error -> status.text = state.message
                 is UiState.Data -> {
                     status.text = if (state.value.isEmpty()) "No orders found." else "${state.value.size} orders"
-                    adapter.submit(state.value.map { RowItem(it.id, "Order #${it.id} — ${it.customer}", "${it.product} • ${it.orderStatus}") })
+                    adapter.submit(state.value.map {
+                        RowItem(
+                            it.id,
+                            "Order #${it.id}",
+                            "${it.customer}  •  ${it.product}",
+                            payment = it.paymentStatus,
+                            orderStatus = it.orderStatus,
+                            cardStatus = it.assignedCard?.status ?: "NFC not prepared",
+                        )
+                    })
                 }
                 UiState.Idle -> Unit
             }

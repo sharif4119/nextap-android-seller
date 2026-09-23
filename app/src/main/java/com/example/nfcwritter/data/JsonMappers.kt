@@ -22,17 +22,24 @@ object JsonMappers {
     fun order(element: JsonElement): SellerOrder {
         val o = payloadObject(element)
         val customerObject = o.obj("customer")
-        val assigned = o.obj("assigned_card") ?: o.obj("card")
+        val productObject = o.obj("product")
+        val assigned = o.obj("assigned_card") ?: o.obj("card") ?: o.obj("nfc_card")
+            ?: o.takeIf { it.has("card_uid") && it.has("public_url") }
+        val card = assigned?.let(::card)?.let { mapped ->
+            if (mapped.printDesignUrl != null) mapped else mapped.copy(printDesignUrl = printDesignUrl(o))
+        }
         return SellerOrder(
             id = o.long("id", "order_id"),
             customer = o.text("customer_name", "name")
                 ?: customerObject?.text("name", "full_name", "username") ?: "—",
             phone = o.text("phone", "phone_number") ?: customerObject?.text("phone", "phone_number") ?: "—",
             address = o.text("address", "shipping_address") ?: customerObject?.text("address") ?: "—",
-            product = o.text("product_name", "product", "card_type") ?: "—",
+            city = o.text("city") ?: customerObject?.text("city") ?: "—",
+            product = o.text("product_name", "card_type") ?: productObject?.text("name", "title") ?: "—",
+            price = o.text("price", "total", "total_price") ?: productObject?.text("price") ?: "—",
             paymentStatus = o.text("payment_status", "payment") ?: "—",
             orderStatus = o.text("order_status", "status") ?: "—",
-            assignedCard = assigned?.let(::card),
+            assignedCard = card,
         )
     }
 
@@ -43,17 +50,28 @@ object JsonMappers {
     fun card(element: JsonElement): NfcCard = card(payloadObject(element))
 
     private fun card(o: JsonObject) = NfcCard(
-        id = o.long("id", "card_id"),
-        uid = o.text("uid", "card_uid", "serial_number", "code") ?: "—",
+        id = o.long("card_id", "id"),
+        uid = o.text("card_uid", "uid", "serial_number", "code") ?: "—",
         status = o.text("status", "card_status") ?: "—",
         publicUrl = o.text("public_url", "url"),
+        printDesignUrl = printDesignUrl(o),
     )
 
+    private fun printDesignUrl(o: JsonObject): String? =
+        o.text("print_design_url", "print_pdf_url", "design_pdf_url", "card_design_url", "artwork_pdf_url")
+            ?: o.obj("print_design")?.text("pdf_url", "download_url", "url")
+            ?: o.obj("card_design")?.text("pdf_url", "download_url", "url")
+
     private fun payloadObject(element: JsonElement): JsonObject {
-        val root = element.asJsonObject
-        return listOf("data", "order", "card", "dashboard").firstNotNullOfOrNull { key ->
-            root.get(key)?.takeIf { it.isJsonObject }?.asJsonObject
-        } ?: root
+        var current = element.asJsonObject
+        repeat(3) {
+            if (current.has("id") || current.has("order_id") || current.has("card_id")) return current
+            val nested = listOf("data", "order", "card", "dashboard").firstNotNullOfOrNull { key ->
+                current.get(key)?.takeIf { it.isJsonObject }?.asJsonObject
+            } ?: return current
+            current = nested
+        }
+        return current
     }
 
     private fun listPayload(element: JsonElement): List<JsonObject> {

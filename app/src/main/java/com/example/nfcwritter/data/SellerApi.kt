@@ -1,11 +1,13 @@
 package com.example.nfcwritter.data
 
 import com.google.gson.JsonElement
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Url
 
 interface SellerApi {
     @POST("api/seller/login/")
@@ -19,6 +21,9 @@ interface SellerApi {
 
     @GET("api/seller/orders/{id}/")
     suspend fun order(@Path("id") id: Long): Response<JsonElement>
+
+    @POST("api/seller/orders/{id}/prepare-card/")
+    suspend fun prepareCard(@Path("id") id: Long): Response<JsonElement>
 
     @GET("api/seller/cards/available/")
     suspend fun availableCards(): Response<JsonElement>
@@ -34,4 +39,7 @@ interface SellerApi {
 
     @POST("api/seller/cards/{id}/activate/")
     suspend fun activate(@Path("id") id: Long): Response<JsonElement>
+
+    @GET
+    suspend fun printDesign(@Url url: String): Response<ResponseBody>
 }

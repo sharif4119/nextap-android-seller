@@ -38,4 +38,31 @@ class JsonMappersTest {
         val card = JsonMappers.card(JsonParser.parseString("""{"id":7,"uid":"XYZ","status":"available"}"""))
         assertNull(card.publicUrl)
     }
+
+    @Test
+    fun prepareCardResponse_mapsReturnedOrderAndGeneratedCard() {
+        val json = JsonParser.parseString(
+            """{"data":{"order":{"id":44,"customer_name":"Nadia","city":"Dhaka","product":{"name":"Metal Card","price":"1499.00"},"payment_status":"paid","order_status":"processing","assigned_card":{"card_id":81,"card_uid":"NX-0044","status":"ASSIGNED","public_url":"https://example.com/n/nx-0044"}}}}"""
+        )
+
+        val order = JsonMappers.order(json)
+        assertEquals("Dhaka", order.city)
+        assertEquals("Metal Card", order.product)
+        assertEquals("1499.00", order.price)
+        assertEquals(81L, order.assignedCard?.id)
+        assertEquals("NX-0044", order.assignedCard?.uid)
+        assertEquals(true, order.assignedCard?.canWrite)
+    }
+
+    @Test
+    fun order_mapsBackendPrintDesignUrlOntoPreparedCard() {
+        val json = JsonParser.parseString(
+            """{"id":44,"print_design":{"pdf_url":"/api/seller/print-designs/44/pdf/"},"assigned_card":{"id":81,"uid":"NX-0044","status":"ASSIGNED","public_url":"https://example.com/n/nx-0044"}}"""
+        )
+
+        assertEquals(
+            "/api/seller/print-designs/44/pdf/",
+            JsonMappers.order(json).assignedCard?.printDesignUrl,
+        )
+    }
 }

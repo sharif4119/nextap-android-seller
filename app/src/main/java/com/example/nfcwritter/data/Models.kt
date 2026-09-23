@@ -17,7 +17,9 @@ data class SellerOrder(
     val customer: String = "—",
     val phone: String = "—",
     val address: String = "—",
+    val city: String = "—",
     val product: String = "—",
+    val price: String = "—",
     val paymentStatus: String = "—",
     val orderStatus: String = "—",
     val assignedCard: NfcCard? = null,
@@ -28,6 +30,15 @@ data class NfcCard(
     val uid: String = "—",
     val status: String = "—",
     val publicUrl: String? = null,
+    val printDesignUrl: String? = null,
+) {
+    val normalizedStatus: String get() = status.trim().uppercase()
+    val canWrite: Boolean get() = publicUrl?.isNotBlank() == true && normalizedStatus == "ASSIGNED"
+}
+
+data class PrintDesignDocument(
+    val fileName: String,
+    val bytes: ByteArray,
 )
 
 sealed interface ApiResult<out T> {

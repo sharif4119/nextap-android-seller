@@ -1,13 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent">
-    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="24dp">
-        <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="26sp" android:textStyle="bold" />
-        <TextView android:id="@+id/status_message" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" />
-        <TextView android:id="@+id/uid" style="@style/DetailText" />
-        <TextView android:id="@+id/card_status" style="@style/DetailText" />
-        <TextView android:id="@+id/public_url" style="@style/DetailText" android:textIsSelectable="true" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/write_button"
-            android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Write NFC" android:layout_marginTop="24dp" android:visibility="gone" />
-    </LinearLayout>
-</ScrollView>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/app_background">
+    <com.google.android.material.appbar.MaterialToolbar android:id="@+id/toolbar" style="@style/NexTapToolbar" android:layout_width="match_parent" android:layout_height="?attr/actionBarSize" android:title="Card detail" app:navigationIcon="@drawable/ic_arrow_back" />
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+            <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/text_primary" android:textSize="27sp" android:textStyle="bold" />
+            <TextView android:id="@+id/status_message" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/status_error" android:layout_marginTop="10dp" />
+            <com.google.android.material.card.MaterialCardView style="@style/DetailCard" android:layout_marginTop="18dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+                    <TextView style="@style/SectionTitle" android:text="Prepared NFC card" />
+                    <TextView android:id="@+id/uid" style="@style/DetailText" android:textIsSelectable="true" />
+                    <TextView android:id="@+id/card_status" style="@style/DetailText" />
+                    <TextView android:id="@+id/public_url" style="@style/DetailText" android:textIsSelectable="true" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/write_button" android:layout_width="match_parent" android:layout_height="54dp" android:text="Write NFC" android:textStyle="bold" android:layout_marginTop="22dp" android:visibility="gone" app:cornerRadius="14dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/design_section" style="@style/DetailCard" android:visibility="gone">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="20dp">
+                    <TextView style="@style/SectionTitle" android:text="Card Design" />
+                    <TextView android:id="@+id/design_status" style="@style/DetailText" />
+                    <ProgressBar android:id="@+id/design_progress" android:layout_width="28dp" android:layout_height="28dp" android:layout_gravity="center_horizontal" android:layout_marginTop="12dp" android:visibility="gone" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/preview_design_button" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="14dp" android:text="Preview" app:cornerRadius="12dp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/download_design_button" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Download PDF" app:cornerRadius="12dp" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/share_design_button" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Share PDF" app:cornerRadius="12dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
