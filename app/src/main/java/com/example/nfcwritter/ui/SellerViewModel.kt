@@ -29,6 +29,8 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _authenticated = MutableLiveData<Boolean?>(null)
     val authenticated: LiveData<Boolean?> = _authenticated
+    private val _sellerAccount = MutableLiveData<String?>(null)
+    val sellerAccount: LiveData<String?> = _sellerAccount
     private val _login = MutableLiveData<UiState<String>>(UiState.Idle)
     val login: LiveData<UiState<String>> = _login
     private val _dashboard = MutableLiveData<UiState<DashboardStats>>(UiState.Idle)
@@ -55,9 +57,16 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
     private var cardRequestId: Long? = null
     private var programmedConfirmed = false
 
-    init { viewModelScope.launch { _authenticated.value = tokenStore.load() != null } }
+    init {
+        viewModelScope.launch {
+            val authenticated = tokenStore.load() != null
+            _sellerAccount.value = tokenStore.cachedUsername.takeIf { authenticated }
+            _authenticated.value = authenticated
+        }
+    }
 
     fun login(username: String, password: String) = launchInto(_login, { repository.login(username, password) }) {
+        _sellerAccount.value = it
         _authenticated.value = true
     }
 
@@ -166,14 +175,20 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
     suspend fun downloadPrintDesign(card: NfcCard): ApiResult<PrintDesignDocument> {
         val result = repository.printDesign(card)
         if (result is ApiResult.Error && result.unauthorized) {
-            repository.logout()
-            _authenticated.value = false
+            expireSession()
         }
         return result
     }
 
     fun logout() = viewModelScope.launch {
         repository.logout()
+        _sellerAccount.value = null
+        _authenticated.value = false
+    }
+
+    fun expireSession() = viewModelScope.launch {
+        repository.logout()
+        _sellerAccount.value = null
         _authenticated.value = false
     }
 
@@ -198,6 +213,7 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
         target.value = UiState.Error(error.message)
         if (error.unauthorized) viewModelScope.launch {
             repository.logout()
+            _sellerAccount.value = null
             _authenticated.value = false
         }
     }
@@ -206,6 +222,7 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
         _programming.value = ProgrammingState.Error(error.message)
         if (error.unauthorized) viewModelScope.launch {
             repository.logout()
+            _sellerAccount.value = null
             _authenticated.value = false
         }
     }

@@ -15,6 +15,8 @@ class TokenStore(private val context: Context) {
 
     @Volatile var cachedToken: String? = null
         private set
+    @Volatile var cachedUsername: String? = null
+        private set
 
     suspend fun load(): String? {
         val preferences = context.authDataStore.data.first()
@@ -27,6 +29,7 @@ class TokenStore(private val context: Context) {
                 it[serverKey] = SellerRepository.BASE_URL
             }
             cachedToken = null
+            cachedUsername = null
             return null
         }
 
@@ -35,6 +38,7 @@ class TokenStore(private val context: Context) {
         }
 
         cachedToken = storedToken
+        cachedUsername = preferences[usernameKey]?.takeIf { storedToken != null }
         return cachedToken
     }
 
@@ -45,6 +49,7 @@ class TokenStore(private val context: Context) {
             it[serverKey] = SellerRepository.BASE_URL
         }
         cachedToken = token
+        cachedUsername = username
     }
 
     suspend fun clear() {
@@ -54,5 +59,6 @@ class TokenStore(private val context: Context) {
             it[serverKey] = SellerRepository.BASE_URL
         }
         cachedToken = null
+        cachedUsername = null
     }
 }
