@@ -25,6 +25,12 @@ interface SellerApi {
     @POST("api/seller/orders/{id}/prepare-card/")
     suspend fun prepareCard(@Path("id") id: Long): Response<JsonElement>
 
+    @POST("api/seller/orders/{orderId}/allocations/{allocationId}/prepare/")
+    suspend fun prepareAllocation(
+        @Path("orderId") orderId: Long,
+        @Path("allocationId") allocationId: Long,
+    ): Response<JsonElement>
+
     @GET("api/seller/cards/available/")
     suspend fun availableCards(): Response<JsonElement>
 

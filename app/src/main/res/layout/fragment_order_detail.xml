@@ -29,6 +29,9 @@
             <com.google.android.material.card.MaterialCardView style="@style/DetailCard">
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
                     <TextView style="@style/SectionTitle" android:text="NFC card" />
+                    <TextView android:id="@+id/order_type" style="@style/DetailText" android:layout_marginTop="8dp" />
+                    <TextView android:id="@+id/card_progress" style="@style/DetailText" />
+                    <LinearLayout android:id="@+id/allocations_container" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:layout_marginTop="12dp" />
                     <TextView android:id="@+id/card_empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="No NFC card prepared yet" android:textColor="@color/text_secondary" android:textSize="15sp" android:layout_marginTop="12dp" />
                     <LinearLayout android:id="@+id/card_content" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
                         <TextView android:id="@+id/card_uid" style="@style/DetailText" android:textIsSelectable="true" />

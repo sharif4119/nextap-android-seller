@@ -12,11 +12,16 @@
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="18dp">
                     <TextView android:id="@+id/card_uid" style="@style/DetailText" />
                     <TextView android:id="@+id/customer" style="@style/DetailText" />
+                    <TextView android:id="@+id/card_type" style="@style/DetailText" />
+                    <TextView android:id="@+id/representative" style="@style/DetailText" />
+                    <TextView android:id="@+id/current_status" style="@style/DetailText" />
                     <TextView android:id="@+id/url" style="@style/DetailText" android:textIsSelectable="true" android:maxLines="2" android:ellipsize="middle" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
             <com.google.android.material.button.MaterialButton android:id="@+id/retry_button" android:layout_width="match_parent" android:layout_height="54dp" android:text="Try again" android:textStyle="bold" android:layout_marginTop="22dp" android:visibility="gone" app:cornerRadius="14dp" />
             <com.google.android.material.button.MaterialButton android:id="@+id/done_button" android:layout_width="match_parent" android:layout_height="54dp" android:text="Done" android:textStyle="bold" android:layout_marginTop="10dp" android:visibility="gone" app:cornerRadius="14dp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/rewrite_button" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="44dp" android:text="Rewrite NFC" android:layout_marginTop="8dp" android:visibility="gone" app:cornerRadius="12dp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/rewrite_again_button" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="wrap_content" android:layout_height="44dp" android:text="Rewrite Again" android:layout_marginTop="8dp" android:visibility="gone" app:cornerRadius="12dp" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

@@ -13,6 +13,8 @@ import java.io.IOException
 sealed interface NfcWriteResult {
     data object Success : NfcWriteResult
     data class NeedsRetapForVerification(val reason: String) : NfcWriteResult
+    data class RequiresOverwriteConfirmation(val fingerprint: String) : NfcWriteResult
+    data object DifferentNexTapCardProtected : NfcWriteResult
     data class Failure(val reason: String) : NfcWriteResult
 }
 
@@ -22,14 +24,21 @@ object NfcWriter {
     private const val TAG = "NexTapNfcWriter"
 
     /**
-     * Inspects, writes and verifies through one Ndef connection. If the tag already
-     * contains the expected URI, it succeeds without performing another write.
+     * Inspects, writes and verifies through Ndef connections. If the tag already
+     * contains the expected URI, it succeeds without another write unless rewrite
+     * mode explicitly requests a fresh write.
      */
     fun writeAndVerify(
         tag: Tag,
         expectedUrl: String,
+        backendBaseUrl: String,
+        forceRewrite: Boolean = false,
+        overwriteConfirmationFingerprint: String? = null,
         onStage: (NfcOperationStage) -> Unit = {},
     ): NfcWriteResult {
+        if (!NfcRewritePolicy.isCanonicalCardUrl(expectedUrl, backendBaseUrl)) {
+            return NfcWriteResult.Failure("The server did not provide a valid NexTap card URL for this card.")
+        }
         val message = NdefMessage(arrayOf(NdefRecord.createUri(expectedUrl)))
         val ndef = Ndef.get(tag)
         if (ndef == null) {
@@ -40,12 +49,30 @@ object NfcWriter {
 
         var operation = "connect"
         var writeAttempted = false
+        var verificationNdef: Ndef? = null
         return try {
             ndef.connect()
 
             operation = "readCurrentNdef"
             onStage(NfcOperationStage.INSPECTING)
-            val currentUri = uriFrom(ndef.ndefMessage)
+            val currentMessage = ndef.ndefMessage
+            val currentUris = urisFrom(currentMessage)
+            if (NfcRewritePolicy.containsDifferentCardUrl(expectedUrl, currentUris, backendBaseUrl)) {
+                Log.w(TAG, "operation=protectOtherCard result=blocked uriCount=${currentUris.size}")
+                return NfcWriteResult.DifferentNexTapCardProtected
+            }
+            val exactCurrentMessage = NfcRewritePolicy.exactReadBackMatches(
+                expectedUrl,
+                currentUris,
+                currentMessage?.records?.size ?: 0,
+            )
+            val currentUri = if (exactCurrentMessage) expectedUrl else currentUris.firstOrNull()
+            val hasExistingData = currentMessage?.records?.isNotEmpty() == true
+            val overwriteConfirmed = overwriteConfirmationFingerprint != null &&
+                overwriteConfirmationFingerprint == NfcRewritePolicy.overwriteConfirmationFingerprint(
+                    tag.id,
+                    currentMessage?.toByteArray() ?: ByteArray(0),
+                )
             val messageSize = message.toByteArray().size
             operation = "inspectProperties"
             val writable = ndef.isWritable
@@ -53,18 +80,48 @@ object NfcWriter {
             Log.i(
                 TAG,
                 "operation=inspectNdef connected=${ndef.isConnected} writable=$writable " +
-                    "maxSize=$maxSize messageSize=$messageSize currentUriPresent=${currentUri != null}",
+                "maxSize=$maxSize messageSize=$messageSize currentUriPresent=${currentUri != null} " +
+                    "hasExistingData=$hasExistingData rewriteMode=$forceRewrite",
             )
-            if (currentUri == expectedUrl) {
-                onStage(NfcOperationStage.VERIFYING)
-                Log.i(TAG, "operation=verifyExisting result=exactMatch")
-                return NfcWriteResult.Success
-            }
-
-            operation = "checkWritable"
-            if (!writable) return NfcWriteResult.Failure("This NFC tag is read-only.")
-            if (messageSize > maxSize) {
-                return NfcWriteResult.Failure("This NFC tag is too small for the card URL.")
+            when (NfcRewritePolicy.assess(
+                expectedUrl = expectedUrl,
+                currentUri = if (currentUri == expectedUrl && !exactCurrentMessage) null else currentUri,
+                hasExistingData = hasExistingData,
+                writable = writable,
+                maxSize = maxSize,
+                messageSize = messageSize,
+                backendBaseUrl = backendBaseUrl,
+                forceRewrite = forceRewrite,
+                overwriteConfirmed = overwriteConfirmed,
+            )) {
+                NfcWriteDecision.INVALID_BACKEND_URL -> return NfcWriteResult.Failure(
+                    "The server did not provide a valid NexTap card URL for this card.",
+                )
+                NfcWriteDecision.ALREADY_MATCHES -> {
+                    onStage(NfcOperationStage.VERIFYING)
+                    Log.i(TAG, "operation=verifyExisting result=exactMatch")
+                    return NfcWriteResult.Success
+                }
+                NfcWriteDecision.READ_ONLY -> return NfcWriteResult.Failure(
+                    "This NFC tag is read-only and cannot be rewritten.",
+                )
+                NfcWriteDecision.INSUFFICIENT_CAPACITY -> return NfcWriteResult.Failure(
+                    "This NFC tag does not have enough capacity for the card URL.",
+                )
+                NfcWriteDecision.DIFFERENT_NEXTAP_CARD -> {
+                    Log.w(TAG, "operation=protectOtherCard result=blocked")
+                    return NfcWriteResult.DifferentNexTapCardProtected
+                }
+                NfcWriteDecision.CONFIRM_OVERWRITE -> {
+                    Log.i(TAG, "operation=protectExistingNdef result=confirmationRequired")
+                    return NfcWriteResult.RequiresOverwriteConfirmation(
+                        NfcRewritePolicy.overwriteConfirmationFingerprint(
+                            tag.id,
+                            currentMessage?.toByteArray() ?: ByteArray(0),
+                        ),
+                    )
+                }
+                NfcWriteDecision.WRITE -> Unit
             }
 
             operation = "writeNdefMessage"
@@ -72,14 +129,26 @@ object NfcWriter {
             writeAttempted = true
             ndef.writeNdefMessage(message)
 
+            operation = "closeAfterWrite"
+            ndef.close()
+            operation = "freshVerificationConnect"
+            verificationNdef = Ndef.get(tag)
+                ?: return NfcWriteResult.Failure("Ndef became unavailable after writing; the result could not be verified.")
+            verificationNdef.connect()
             operation = "readBackNdef"
             onStage(NfcOperationStage.VERIFYING)
-            val verifiedUri = uriFrom(ndef.ndefMessage)
-            if (verifiedUri == expectedUrl) {
+            val verificationMessage = verificationNdef.ndefMessage
+            val verifiedUris = urisFrom(verificationMessage)
+            if (NfcRewritePolicy.exactReadBackMatches(
+                    expectedUrl,
+                    verifiedUris,
+                    verificationMessage?.records?.size ?: 0,
+                )
+            ) {
                 Log.i(TAG, "operation=readBackNdef result=exactMatch")
                 NfcWriteResult.Success
             } else {
-                Log.e(TAG, "operation=readBackNdef result=mismatch uriPresent=${verifiedUri != null}")
+                Log.e(TAG, "operation=readBackNdef result=mismatch uriCount=${verifiedUris.size}")
                 NfcWriteResult.Failure("Verification failed: the tag URL did not exactly match the server URL.")
             }
         } catch (e: TagLostException) {
@@ -99,6 +168,7 @@ object NfcWriter {
             ) else NfcWriteResult.Failure("An unexpected NFC error occurred during $operation. Tap Retry.")
         } finally {
             closeNdef(ndef, operation)
+            verificationNdef?.let { closeNdef(it, "$operation verification") }
         }
     }
 
@@ -109,12 +179,18 @@ object NfcWriter {
         return try {
             ndef.connect()
             operation = "verifyReadNdef"
-            val actual = uriFrom(ndef.ndefMessage)
-            if (actual == expectedUrl) {
+            val actualMessage = ndef.ndefMessage
+            val actualUris = urisFrom(actualMessage)
+            if (NfcRewritePolicy.exactReadBackMatches(
+                    expectedUrl,
+                    actualUris,
+                    actualMessage?.records?.size ?: 0,
+                )
+            ) {
                 Log.i(TAG, "operation=verifyReadNdef result=exactMatch")
                 NfcWriteResult.Success
             } else {
-                Log.e(TAG, "operation=verifyReadNdef result=mismatch uriPresent=${actual != null}")
+                Log.e(TAG, "operation=verifyReadNdef result=mismatch uriCount=${actualUris.size}")
                 NfcWriteResult.Failure("Verification found a different URL. Tap Retry to inspect and write the card again.")
             }
         } catch (e: TagLostException) {
@@ -215,9 +291,9 @@ object NfcWriter {
         )
     }
 
-    private fun uriFrom(message: NdefMessage?): String? = message?.records?.firstNotNullOfOrNull { record ->
+    private fun urisFrom(message: NdefMessage?): List<String> = message?.records?.mapNotNull { record ->
         record.toUri()?.toString()?.takeIf { it.isNotBlank() }
-    }
+    }.orEmpty()
 
     private fun closeNdef(ndef: Ndef, operation: String) {
         runCatching { ndef.close() }.onFailure {

@@ -31,10 +31,12 @@ class OrdersFragment : BaseFragment(R.layout.fragment_list) {
                         RowItem(
                             it.id,
                             "Order #${it.id}",
-                            "${it.customer}  •  ${it.product}",
+                            "${it.customer}  •  ${it.product}\n${orderCategory(it)}  •  Qty ${it.quantity}  •  Price ${it.price}",
                             payment = it.paymentStatus,
                             orderStatus = it.orderStatus,
-                            cardStatus = it.assignedCard?.status ?: "NFC not prepared",
+                            cardStatus = if (it.quantity > 1 || it.allocations.size > 1) {
+                                "${it.preparedCount}/${it.quantity} prepared"
+                            } else it.assignedCard?.status ?: "NFC not prepared",
                         )
                     })
                 }
@@ -42,5 +44,12 @@ class OrdersFragment : BaseFragment(R.layout.fragment_list) {
             }
         }
         viewModel.loadOrders()
+    }
+
+    private fun orderCategory(order: com.example.nfcwritter.data.SellerOrder): String = when {
+        order.cardCategory == "PERSONAL" -> "Personal Card"
+        order.cardCategory == "BUSINESS" && (order.businessOrderType == "MULTIPLE" || order.quantity > 1) -> "Business Multiple Cards"
+        order.cardCategory == "BUSINESS" -> "Business Single Card"
+        else -> "Card order"
     }
 }
