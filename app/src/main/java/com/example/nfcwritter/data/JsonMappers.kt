@@ -28,6 +28,24 @@ object JsonMappers {
         val card = assigned?.let(::card)?.let { mapped ->
             if (mapped.printDesignUrl != null) mapped else mapped.copy(printDesignUrl = printDesignUrl(o))
         }
+        val allocations = o.get("allocations")?.takeIf { it.isJsonArray }?.asJsonArray?.mapNotNull { item ->
+            if (!item.isJsonObject) return@mapNotNull null
+            val allocation = item.asJsonObject
+            val allocationCard = allocation.obj("card")?.let(::card)
+            CardAllocation(
+                id = allocation.long("id"),
+                position = allocation.int("position").takeIf { it > 0 } ?: 1,
+                representative = allocation.obj("representative")?.let(::representative),
+                card = allocationCard,
+            )
+        }.orEmpty()
+        val quantity = o.int("quantity").takeIf { it > 0 } ?: 1
+        val preparedCount = if (o.has("prepared_count") && !o.get("prepared_count").isJsonNull) {
+            o.int("prepared_count")
+        } else {
+            allocations.count { it.card != null }.takeIf { allocations.isNotEmpty() }
+                ?: if (card != null) 1 else 0
+        }
         return SellerOrder(
             id = o.long("id", "order_id"),
             customer = o.text("customer_name", "name")
@@ -40,6 +58,11 @@ object JsonMappers {
             paymentStatus = o.text("payment_status", "payment") ?: "—",
             orderStatus = o.text("order_status", "status") ?: "—",
             assignedCard = card,
+            cardCategory = o.text("card_category")?.uppercase().orEmpty(),
+            businessOrderType = o.text("business_order_type")?.uppercase().orEmpty(),
+            quantity = quantity,
+            preparedCount = preparedCount,
+            allocations = allocations,
         )
     }
 
@@ -55,6 +78,17 @@ object JsonMappers {
         status = o.text("status", "card_status") ?: "—",
         publicUrl = o.text("public_url", "url"),
         printDesignUrl = printDesignUrl(o),
+        cardCategory = o.text("card_category")?.uppercase().orEmpty(),
+        representative = o.obj("representative")?.let(::representative),
+        ownerUsername = o.text("owner_username"),
+    )
+
+    private fun representative(o: JsonObject) = CardRepresentative(
+        id = o.long("id"),
+        name = o.text("name") ?: "—",
+        designation = o.text("designation").orEmpty(),
+        phone = o.text("phone").orEmpty(),
+        email = o.text("email").orEmpty(),
     )
 
     private fun printDesignUrl(o: JsonObject): String? =

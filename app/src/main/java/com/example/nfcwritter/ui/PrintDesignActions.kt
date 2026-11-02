@@ -1,5 +1,6 @@
 package com.example.nfcwritter.ui
 
+import android.annotation.TargetApi
 import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Context
@@ -169,6 +170,7 @@ class PrintDesignActions(
         return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
     }
 
+    @TargetApi(Build.VERSION_CODES.Q)
     private fun saveToDownloads(context: Context, document: PrintDesignDocument): Uri {
         val resolver = context.contentResolver
         val values = ContentValues().apply {

@@ -45,6 +45,10 @@ class NfcCaptureController {
         current.set(NfcCaptureState.COMPLETE)
     }
 
+    fun restart() {
+        current.set(NfcCaptureState.WAITING)
+    }
+
     fun cancelForLifecycle() {
         current.updateAndGet { state ->
             if (state == NfcCaptureState.PROCESSING) NfcCaptureState.WAITING_FOR_VERIFICATION

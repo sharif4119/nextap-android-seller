@@ -65,4 +65,45 @@ class JsonMappersTest {
             JsonMappers.order(json).assignedCard?.printDesignUrl,
         )
     }
+
+    @Test
+    fun personalOrder_mapsCategoryQuantityAndAllocationServerValues() {
+        val order = JsonMappers.order(JsonParser.parseString(
+            """{"id":51,"customer_name":"Asha","product_name":"Personal Compact","price":"650.00","card_category":"PERSONAL","business_order_type":"","quantity":1,"prepared_count":1,"order_status":"CARD_ASSIGNED","allocations":[{"id":701,"position":1,"representative":null,"card":{"id":901,"card_uid":"NXT-P-901","status":"ASSIGNED","public_url":"https://nextap.pythonanywhere.com/c/personal-token/","print_pdf_url":"https://nextap.pythonanywhere.com/api/seller/cards/901/print/"}}]}"""
+        ))
+
+        assertEquals("PERSONAL", order.cardCategory)
+        assertEquals(1, order.quantity)
+        assertEquals(1, order.preparedCount)
+        assertEquals(701L, order.allocations.single().id)
+        assertEquals("https://nextap.pythonanywhere.com/c/personal-token/", order.allocations.single().card?.publicUrl)
+        assertEquals("https://nextap.pythonanywhere.com/api/seller/cards/901/print/", order.allocations.single().card?.printDesignUrl)
+    }
+
+    @Test
+    fun businessSingleOrder_mapsRepresentativeAndCardIndependently() {
+        val order = JsonMappers.order(JsonParser.parseString(
+            """{"id":52,"card_category":"BUSINESS","business_order_type":"SINGLE","quantity":1,"prepared_count":1,"allocations":[{"id":702,"position":1,"representative":{"id":15,"name":"Rahim","designation":"Manager","phone":"01700","email":"rahim@example.test"},"card":{"id":902,"card_uid":"NXT-B-902","status":"PROGRAMMED","public_url":"https://nextap.pythonanywhere.com/c/business-single/","print_pdf_url":"/api/seller/cards/902/print/","card_category":"BUSINESS","representative":{"id":15,"name":"Rahim","designation":"Manager","phone":"01700","email":"rahim@example.test"}}}]}"""
+        ))
+
+        assertEquals("SINGLE", order.businessOrderType)
+        assertEquals("Rahim", order.allocations.single().representative?.name)
+        assertEquals("Manager", order.allocations.single().card?.representative?.designation)
+        assertEquals("PROGRAMMED", order.allocations.single().card?.normalizedStatus)
+    }
+
+    @Test
+    fun businessMultipleOrder_keepsAllocationIdsRepresentativesAndUrlsDistinct() {
+        val order = JsonMappers.order(JsonParser.parseString(
+            """{"id":53,"card_category":"BUSINESS","business_order_type":"MULTIPLE","quantity":2,"prepared_count":1,"order_status":"CARD_ASSIGNED","assigned_card":{"id":903,"card_uid":"NXT-B-903","status":"ASSIGNED","public_url":"https://nextap.pythonanywhere.com/c/card-one/"},"allocations":[{"id":703,"position":1,"representative":{"id":16,"name":"Rahim","designation":"Manager"},"card":{"id":903,"card_uid":"NXT-B-903","status":"ASSIGNED","public_url":"https://nextap.pythonanywhere.com/c/card-one/","print_pdf_url":"/api/seller/cards/903/print/"}},{"id":704,"position":2,"representative":{"id":17,"name":"Karim","designation":"Director"},"card":null}]}"""
+        ))
+
+        assertEquals("MULTIPLE", order.businessOrderType)
+        assertEquals(2, order.quantity)
+        assertEquals(1, order.preparedCount)
+        assertEquals(listOf(703L, 704L), order.allocations.map { it.id })
+        assertEquals(listOf("Rahim", "Karim"), order.allocations.map { it.representative?.name })
+        assertEquals("https://nextap.pythonanywhere.com/c/card-one/", order.allocations[0].card?.publicUrl)
+        assertNull(order.allocations[1].card)
+    }
 }

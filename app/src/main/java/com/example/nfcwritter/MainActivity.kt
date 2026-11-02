@@ -120,10 +120,40 @@ class MainActivity : AppCompatActivity(), AppNavigator {
     override fun orders() = selectRoot(R.id.nav_orders)
     override fun order(id: Long) = show(OrderDetailFragment.newInstance(id))
     override fun availableCards() = selectRoot(R.id.nav_cards)
-    override fun card(id: Long) = show(CardDetailFragment.newInstance(id))
-    override fun writeCard(id: Long, publicUrl: String, cardUid: String, customer: String) {
+    override fun card(id: Long, customer: String, cardType: String, orderId: Long?) =
+        show(CardDetailFragment.newInstance(id, customer, cardType, orderId))
+    override fun writeCard(
+        id: Long,
+        publicUrl: String,
+        cardUid: String,
+        customer: String,
+        orderId: Long?,
+        rewriteMode: Boolean,
+        cardType: String,
+        representative: String,
+        currentStatus: String,
+    ) {
         viewModel.resetProgramming()
-        show(NfcWriteFragment.newInstance(id, publicUrl, cardUid, customer))
+        show(NfcWriteFragment.newInstance(
+            id, publicUrl, cardUid, customer, orderId,
+            rewriteMode, cardType, representative, currentStatus,
+        ))
+    }
+    override fun backToCardDetails(id: Long, customer: String, cardType: String, orderId: Long?) {
+        val current = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        if (current is NfcWriteFragment && supportFragmentManager.backStackEntryCount > 0) {
+            supportFragmentManager.popBackStackImmediate()
+            var restored = supportFragmentManager.findFragmentById(R.id.fragment_container)
+            if (restored is CardDetailFragment && restored.matchesCard(id)) return
+            if (restored is NfcWriteFragment && restored.matchesCard(id) &&
+                supportFragmentManager.backStackEntryCount > 0
+            ) {
+                supportFragmentManager.popBackStackImmediate()
+                restored = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                if (restored is CardDetailFragment && restored.matchesCard(id)) return
+            }
+        }
+        card(id, customer, cardType, orderId)
     }
     override fun logout() {
         stopNotificationMonitoring(cancelBackground = true)
@@ -327,8 +357,19 @@ interface AppNavigator {
     fun orders()
     fun order(id: Long)
     fun availableCards()
-    fun card(id: Long)
-    fun writeCard(id: Long, publicUrl: String, cardUid: String = "—", customer: String = "—")
+    fun card(id: Long, customer: String = "", cardType: String = "", orderId: Long? = null)
+    fun writeCard(
+        id: Long,
+        publicUrl: String,
+        cardUid: String = "—",
+        customer: String = "—",
+        orderId: Long? = null,
+        rewriteMode: Boolean = false,
+        cardType: String = "",
+        representative: String = "",
+        currentStatus: String = "",
+    )
+    fun backToCardDetails(id: Long, customer: String = "", cardType: String = "", orderId: Long? = null)
     fun logout()
     fun startNfcReader(callback: (Tag) -> Unit): String?
     fun stopNfcReader()

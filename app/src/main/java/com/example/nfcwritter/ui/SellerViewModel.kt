@@ -55,7 +55,7 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
     private var cardJob: Job? = null
     private var orderRequestId: Long? = null
     private var cardRequestId: Long? = null
-    private var programmedConfirmed = false
+    private var programmingCardId: Long? = null
 
     init {
         viewModelScope.launch {
@@ -108,6 +108,23 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
+    fun prepareAllocation(orderId: Long, allocationId: Long) {
+        if (_order.value is UiState.Loading) return
+        selectedOrderId = orderId
+        orderRequestId = orderId
+        orderJob?.cancel()
+        orderJob = launchInto(_order, { repository.prepareAllocation(orderId, allocationId) }) { prepared ->
+            selectedCardId = prepared.allocations.firstOrNull { it.id == allocationId }?.card?.id
+                ?: prepared.assignedCard?.id
+            val orders = (_orders.value as? UiState.Data)?.value
+            if (orders != null) _orders.value = UiState.Data(orders.map { if (it.id == prepared.id) prepared else it })
+            val preparedIds = prepared.allocations.mapNotNull { it.card?.id }.toSet()
+            if (preparedIds.isNotEmpty()) {
+                val cards = (_cards.value as? UiState.Data)?.value
+                if (cards != null) _cards.value = UiState.Data(cards.filterNot { it.id in preparedIds })
+            }
+        }
+    }
     fun loadCard(id: Long, force: Boolean = false) {
         val current = (_card.value as? UiState.Data)?.value
         if (!force && ((_card.value is UiState.Loading && cardRequestId == id) || current?.id == id)) return
@@ -122,15 +139,39 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
         launchInto(_order, { repository.assignCard(orderId, cardId) }) { selectedCardId = it.assignedCard?.id ?: cardId }
     }
 
-    fun confirmProgrammedAndActivate(cardId: Long) {
-        if (_programming.value == ProgrammingState.MarkingProgrammed || _programming.value == ProgrammingState.Activating) return
+    fun confirmProgrammedAndActivate(cardId: Long, orderId: Long? = null) {
+        if (programmingCardId != null) return
+        programmingCardId = cardId
         viewModelScope.launch {
-            if (!programmedConfirmed) {
-                _programming.value = ProgrammingState.MarkingProgrammed
-                when (val programmed = repository.markProgrammed(cardId)) {
-                    is ApiResult.Success -> programmedConfirmed = true
-                    is ApiResult.Error -> {
-                        programmingError(programmed)
+            when (val current = repository.card(cardId)) {
+                is ApiResult.Error -> {
+                    programmingError(current)
+                    programmingCardId = null
+                    return@launch
+                }
+                is ApiResult.Success -> when (current.data.normalizedStatus) {
+                    "ACTIVE" -> {
+                        refreshCardAfterCardChange(cardId)
+                        refreshOrderAfterCardChange(orderId)
+                        _programming.value = ProgrammingState.Success
+                        programmingCardId = null
+                        return@launch
+                    }
+                    "PROGRAMMED" -> Unit
+                    "ASSIGNED" -> {
+                        _programming.value = ProgrammingState.MarkingProgrammed
+                        when (val programmed = repository.markProgrammed(cardId)) {
+                            is ApiResult.Error -> {
+                                programmingError(programmed)
+                                programmingCardId = null
+                                return@launch
+                            }
+                            is ApiResult.Success -> Unit
+                        }
+                    }
+                    else -> {
+                        programmingError(ApiResult.Error("This card is not in a programmable status."))
+                        programmingCardId = null
                         return@launch
                     }
                 }
@@ -138,15 +179,35 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
             _programming.value = ProgrammingState.Activating
             when (val activated = repository.activate(cardId)) {
                 is ApiResult.Success -> {
-                    val order = (_order.value as? UiState.Data)?.value
-                    if (order?.assignedCard?.id == cardId) {
-                        val active = order.assignedCard.copy(status = "ACTIVE")
-                        _order.value = UiState.Data(order.copy(assignedCard = active))
-                    }
+                    refreshCardAfterCardChange(cardId)
+                    refreshOrderAfterCardChange(orderId)
                     _programming.value = ProgrammingState.Success
                 }
                 is ApiResult.Error -> programmingError(activated)
             }
+            programmingCardId = null
+        }
+    }
+
+    private suspend fun refreshOrderAfterCardChange(orderId: Long?) {
+        if (orderId == null) return
+        when (val refreshed = repository.order(orderId)) {
+            is ApiResult.Success -> {
+                _order.value = UiState.Data(refreshed.data)
+                val orders = (_orders.value as? UiState.Data)?.value
+                if (orders != null) _orders.value = UiState.Data(orders.map { if (it.id == orderId) refreshed.data else it })
+            }
+            is ApiResult.Error -> if (refreshed.unauthorized) programmingError(refreshed)
+        }
+    }
+
+    private suspend fun refreshCardAfterCardChange(cardId: Long) {
+        when (val refreshed = repository.card(cardId)) {
+            is ApiResult.Success -> {
+                _card.value = UiState.Data(refreshed.data)
+                cardRequestId = cardId
+            }
+            is ApiResult.Error -> if (refreshed.unauthorized) programmingError(refreshed)
         }
     }
 
@@ -168,7 +229,7 @@ class SellerViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun resetProgramming() {
-        programmedConfirmed = false
+        programmingCardId = null
         _programming.value = ProgrammingState.Idle
     }
 

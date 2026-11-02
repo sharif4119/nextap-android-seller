@@ -40,6 +40,8 @@ class SellerRepository(private val api: SellerApi, private val tokenStore: Token
     suspend fun orders() = request(api::orders, JsonMappers::orders)
     suspend fun order(id: Long) = request({ api.order(id) }, JsonMappers::order)
     suspend fun prepareCard(orderId: Long) = request({ api.prepareCard(orderId) }, JsonMappers::order)
+    suspend fun prepareAllocation(orderId: Long, allocationId: Long) =
+        request({ api.prepareAllocation(orderId, allocationId) }, JsonMappers::order)
     suspend fun availableCards() = request(api::availableCards, JsonMappers::cards)
     suspend fun card(id: Long) = request({ api.card(id) }, JsonMappers::card)
     suspend fun assignCard(orderId: Long, cardId: Long): ApiResult<SellerOrder> {

@@ -23,6 +23,26 @@ data class SellerOrder(
     val paymentStatus: String = "—",
     val orderStatus: String = "—",
     val assignedCard: NfcCard? = null,
+    val cardCategory: String = "",
+    val businessOrderType: String = "",
+    val quantity: Int = 1,
+    val preparedCount: Int = 0,
+    val allocations: List<CardAllocation> = emptyList(),
+)
+
+data class CardRepresentative(
+    val id: Long,
+    val name: String = "—",
+    val designation: String = "",
+    val phone: String = "",
+    val email: String = "",
+)
+
+data class CardAllocation(
+    val id: Long,
+    val position: Int = 1,
+    val representative: CardRepresentative? = null,
+    val card: NfcCard? = null,
 )
 
 data class NfcCard(
@@ -31,6 +51,9 @@ data class NfcCard(
     val status: String = "—",
     val publicUrl: String? = null,
     val printDesignUrl: String? = null,
+    val cardCategory: String = "",
+    val representative: CardRepresentative? = null,
+    val ownerUsername: String? = null,
 ) {
     val normalizedStatus: String get() = status.trim().uppercase()
     val canWrite: Boolean get() = publicUrl?.isNotBlank() == true && normalizedStatus == "ASSIGNED"
